@@ -7,6 +7,7 @@ import {
   getChunksBlocksStat,
   prepareSwitchingEpochInfo,
 } from "./src/helpers.js";
+import { exec } from "child_process";
 
 dotenv.config({ path: "./config.env" });
 const __dirname = path.resolve();
@@ -31,7 +32,11 @@ const findMyPoolId = (pool) => pool.account_id === POOL_ID;
 const main = async () => {
   try {
     const node = await nodeFetcher.ping();
-    const { validator_account_id } = await node.json();
+
+    const networkInfo = await nodeFetcher.network();
+    const { num_active_peers } = await networkInfo.json();
+
+    const { validator_account_id, protocol_version, latest_protocol_version } = await node.json();
 
     const status = await nodeFetcher.checkValidators();
     const { result } = await status.json();
@@ -51,8 +56,14 @@ const main = async () => {
 
     const newStateString = JSON.stringify(newState, null, 2);
 
+    console.log("version" + protocol_version)
+    console.log("latest" + latest_protocol_version)
+	console.log("Connected Peers: " + num_active_peers)
+
+    await tgBot.sendMessage("protocol version: " + protocol_version + "\n" + "Near latest version: " + latest_protocol_version + "\n" + "Connected Peers: " + num_active_peers);
+
     //if states are equals then do nothing
-    if (newStateString === prev_state) return;
+    //if (newStateString === prev_state) return;
 
     let oldState;
     if (prev_state) oldState = JSON.parse(prev_state);
@@ -100,6 +111,17 @@ const main = async () => {
     console.log(error);
     await tgBot.sendMessage("🚨 ERROR 🚨\n" + error.message);
   }
+    //const { exec } = require("child_process");
+
+	console.log("=======>");
+    exec('NEAR_ENV=shardnet near validators next | grep "seat price"', async (error, stdout, stderr) => {
+  	console.log("stdout: " + stdout);
+	    await tgBot.sendMessage(" Next Seat Price \n" + stdout);
+  	console.log("stderr: " + stderr);
+  	if (error !== null) {
+    		console.log("exec error: " + error);
+  	}
+    });	
 };
 
 main();

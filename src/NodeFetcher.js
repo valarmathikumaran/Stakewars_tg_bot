@@ -11,6 +11,11 @@ export class NodeFetcher {
     return await fetch(url);
   }
 
+  async network() {
+    const info = this.#BASE_URL + "network_info";
+    return await fetch(info);
+  }
+
   async checkValidators() {
     return await fetch(this.#BASE_URL, {
       method: "POST",
